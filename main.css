@@ -1,0 +1,30 @@
+#blocker {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	background: #42464d4b; 
+}
+
+#instructions {
+	width: 100%;
+	height: 100%;
+
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+
+	text-align: center;
+	font-size: 14px;
+	cursor: pointer;
+}
+
+
+body{
+	/* position:absolute; */
+	overflow: hidden;
+	border: none;
+	margin: none;
+	padding:none;
+
+}

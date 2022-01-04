@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="main.css">
+
+</head>
+
+
+<body>
+
+    <div id="canvas">
+
+        <div id="blocker">
+            <div id="instructions">
+
+                <p style="font-size:60px">
+                    Click to play
+                </p>
+                <p style="font-size:90">
+                    Move : ZQSD <br />
+                    <br />
+                    Run : F<br />
+                    <br />
+                    Camera look : C<br />
+                    <br />
+                    Easter Egg : B <br />
+                    <br />
+                    Up : Space <br />
+                    <br />
+                    Down : V
+
+
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+
+</body>
+<script type="module">
+
+    /* DIFFERENTS IMPORTS */
+
+import { GLTFLoader } from '/three.js-master/examples/jsm/loaders/GLTFLoader.js';
+
+import { OBJLoader } from 'https://threejs.org/examples/jsm/loaders/OBJLoader.js';
+
+import { MTLLoader } from 'https://threejs.org/examples/jsm/loaders/MTLLoader.js';
+
+import * as THREE from '/three.js-master/build/three.module.js';
+
+import { PointerLockControls } from '/three.js-master/examples/jsm/controls/PointerLockControls.js'
+
+import { OrbitControls } from '/three.js-master/examples/jsm/controls/OrbitControls.js';
+
+import { Water } from 'https://threejs.org/examples/jsm/objects/Water.js';
+
+import { Sky } from 'https://threejs.org/examples/jsm/objects/Sky.js';
+
+import { FBXLoader } from '/three.js-master/examples/jsm/loaders/FBXLoader.js'
+
+import { DRACOLoader } from '/three.js-master/examples/jsm/loaders/DRACOLoader.js'
+
+import { Octree } from '/three.js-master/examples/jsm/math/Octree.js';
+
+import { Capsule } from '/three.js-master/examples/jsm/math/Capsule.js';
+
+
+import { KTX2Loader } from 'https://threejs.org/examples/jsm/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'https://threejs.org/examples/jsm/libs/meshopt_decoder.module.js';
+
+
+/* DECLARATION DE VARIABLES */
+
+let camera, scene, renderer,goal;
+let geometry, material, mesh;
+let sun;
+
+let water,sky;
+
+let mixer;
+let delta;
+let valeur_camera;
+let ship;
+let boucle = 0;
+let controls;
+var keys;
+let mixer2;
+let mixer3;
+let stop_walking_animation;
+
+let done = false;
+
+
+var temp = new THREE.Vector3;
+var dir = new THREE.Vector3;
+var a = new THREE.Vector3;
+var b = new THREE.Vector3;
+var vitesse = 0.0;
+var speed = 0.0;
+
+
+var personnage;
+var personnageTwo;
+let ok_personnage = false;
+let ok_personnageTwo = false;
+let change_position_to_run = false;
+let perso_pose;
+let action;
+let action2;
+let animationActions= []
+let animationActionsTwo =[]
+
+const mouse = new THREE.Vector2();
+const target = new THREE.Vector2();
+const windowHalf = new THREE.Vector2( window.innerWidth / 2, window.innerHeight / 2 );
+
+    // TOKEN POUR TOUCHE "C"
+
+let token = [0,1];
+let token_temp;
+let token_for_music = 0;
+let i;
+
+
+const raycaster = new THREE.Raycaster();
+const onClickPosition = new THREE.Vector2();
+
+/////
+
+const GRAVITY = 30;
+const NUM_SPHERES = 100;
+const SPHERE_RADIUS = 0.2;
+const STEPS_PER_FRAME = 5;
+
+const worldOctree = new Octree();
+const playerCollider = new Capsule( new THREE.Vector3( 0, 0.35, 0 ), new THREE.Vector3( 0, 1, 0 ), 0.35 );
+
+const playerVelocity = new THREE.Vector3();
+const playerDirection = new THREE.Vector3();
+
+            let playerOnFloor = false;
+            let mouseTime = 0;
+
+            const keyStates = {};
+
+
+const vector1 = new THREE.Vector3();
+const vector2 = new THREE.Vector3();
+const vector3 = new THREE.Vector3();
+
+const clock = new THREE.Clock();
+
+    
+var soundFile = new Audio('jack-sparrow-tribute.mp3')
+
+
+/* -------------- */
+/* THREE JS SETUP */
+/* -------------- */
+
+function SceneManager(canvas) {
+
+    (function(){
+        var script=document.createElement('script');
+        script.onload=function(){
+            var stats=new Stats();
+            document.body.appendChild(stats.dom);
+            requestAnimationFrame(function loop(){
+                stats.update();
+                requestAnimationFrame(loop)
+            });
+        };
+        
+        script.src='//mrdoob.github.io/stats.js/build/stats.min.js';
+        document.head.appendChild(script);
+    })()
+
+    /* --- Appels de fonctions  */
+
+    const ren = RB();
+    const B = Boat();
+    const perso = BuildPersonnage();
+    const cam = BuildStart();
+    const flote = BuildWater();
+    const ligh = BuildLight();
+    const second = BuildSecondIsland();
+    const buildIle = BuildIsland();
+    const secondDance = DancingPPL();
+
+
+    /* --------------------------- */
+    /* CONSTRUCTION SCENE + CAMERA */
+    /* --------------------------- */
+
+    function BuildStart(){
+
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 20000000 );
+        camera.position.set(300.97594051346526, 120.594013423677485, 50.158022437049556);
+        camera.lookAt(scene.position);
+
+        controls = new PointerLockControls( camera, document.section );
+
+
+        const blocker = document.getElementById( 'blocker' );
+				const instructions = document.getElementById( 'instructions' );
+
+				instructions.addEventListener( 'click', function () {
+
+					controls.lock();
+
+				} );
+
+				controls.addEventListener( 'lock', function () {
+
+					instructions.style.display = 'none';
+					blocker.style.display = 'none';
+
+				} );
+
+				controls.addEventListener( 'unlock', function () {
+
+					blocker.style.display = 'block';
+					instructions.style.display = '';
+
+				} );
+
+				scene.add( controls.getObject() );
+
+
+        valeur_camera = camera.position;
+
+        return camera;
+    }
+
+    /* --------------------------- */
+    /*      RENDU + BACKGROUND     */
+    /* --------------------------- */
+
+    function RB(){
+
+	    renderer = new THREE.WebGLRenderer({ antialias: true } );
+	    renderer.setSize( window.innerWidth, window.innerHeight );
+	    renderer.setAnimationLoop( animate );
+	    canvas.appendChild(renderer.domElement );
+        renderer.shadowMapEnabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        return renderer;
+
+    }
+
+    /* --------------------------- */
+    /*      CENTRE DE CONTROLE     */
+    /* --------------------------- */
+
+    // raycaster.setFromCamera(mouse, camera)
+
+    // const intersects = raycaster.intersectObjects(sceneMeshes, false)
+
+
+    keys = {
+        a:false,
+        s:false,
+        d:false,
+        w:false,
+        f:false,
+        c:false,
+        b:false,
+        space:false,
+        v:false,
+    }
+
+    document.body.addEventListener('keydown',function(e){
+
+        var key = e.code.replace('Key', '').toLowerCase();
+                                                                     if ( keys[ key ] !== undefined )
+                                                                         keys[ key ] = true;
+    });
+
+
+  document.body.addEventListener( 'keyup', function(e) {
+    
+    var key = e.code.replace('Key', '').toLowerCase();
+                                                                    if ( keys[ key ] !== undefined )
+                                                                        keys[ key ] = false;
+  
+  });
+
+
+  // --- Evénements ----
+
+  document.addEventListener( 'mousemove', onMouseMove, false );
+  document.addEventListener( 'wheel', onMouseWheel, false );
+
+    // Evénement mouvement souris
+
+    function onMouseMove( event ) {
+        
+    mouse.x = ( event.clientX - windowHalf.x );
+    mouse.y = ( event.clientY - windowHalf.x );
+
+    }
+
+    // Evénement molette souris
+
+    function onMouseWheel( event ) {
+
+    camera.position.z += event.deltaY * 0.01; 
+
+    }
+
+    /* --------------------------- */
+    /*                             */
+    /*      DIFFERENTS BUILDS      */
+    /*                             */
+    /* --------------------------- */
+
+
+    /* -------- PERSONNAGE ------------ */
+
+function BuildPersonnage(){
+
+// {x: 30.97594051346526, y: 8.594013423677485, z: 30.158022437049556}
+
+    const loadingManagerPerso = new THREE.LoadingManager();
+
+    loadingManagerPerso.onLoad = function(){
+
+        setTimeout( function(){
+            ok_personnage = true;
+        },2000)
+    
+    }
+
+    const newPerso = new FBXLoader(loadingManagerPerso);       
+    newPerso.load( 'PM.fbx', function ( pers ) { 
+    
+    // Variable global
+   personnage = pers;
+
+   // Vector3 {x: -255.90809503121312, y: 12.000000000000021, z: -57.14274517174164}
+
+
+   pers.position.x = -255;
+   pers.position.y = 7;       
+   pers.position.z = -57;
+   pers.traverse( function ( child ) {
+                    child.receiveShadow = true;
+                    child.castShadow = true;
+        }); 
+ 
+    pers.scale.set(0.05,0.05,0.05); 
+    pers.rotation.y = 5
+    // Goal = Caméra
+    goal = new THREE.Object3D;
+    pers.add(goal)
+    goal.position.set(0,200,-600)
+    pers.castShadow = true;
+    1
+
+    scene.add( pers );
+
+                                                const anim = new FBXLoader();
+                                                anim.load('walk.fbx', (anim) => {
+
+
+                                                    mixer = new THREE.AnimationMixer( pers );
+
+                                                    const actions = mixer.clipAction(anim.animations[0] );
+                                                    animationActions.push(actions)
+                                                    pers.castShadow = true;
+                                                })
+
+                                                // --------------------------- //
+
+                                                const anim2 = new FBXLoader();
+                                                anim2.load('run.fbx', (anim2) => {
+
+                                                const actions  = mixer.clipAction(anim2.animations[0]);  
+                                                animationActions.push(actions)
+                                                pers.castShadow = true; 
+
+                                                
+                                                })
+
+                                                // ------------------------- //
+
+                                                const anim3 = new FBXLoader();
+                                                anim3.load('Samba Dancing.fbx', (anim3) => {
+
+                                                    const actions = mixer.clipAction(anim3.animations[0]);
+                                                    animationActions.push(actions)
+                                                    pers.castShadow = true;
+                                                })
+
+            
+        
+                                                });
+
+                                                console.log(animationActions)
+}
+
+
+    /* -------- BATEAU ------------ */
+
+function Boat(){
+
+        const loadingManager = new THREE.LoadingManager( () => {
+	
+    onTransitionEnd();
+    
+} );
+
+
+
+    const dracoLoader = new DRACOLoader()
+    dracoLoader.setDecoderPath('/three.js-master/examples/js/libs/draco/')
+
+    dracoLoader.preload()
+
+    const loader = new GLTFLoader(loadingManager)
+    loader.setDRACOLoader(dracoLoader)
+    loader.load('./Boat/ship.gltf',function (gltf) {
+
+        gltf.scene.position.y= 50;       
+        gltf.scene.position.x = -1500;
+        gltf.scene.position.z = -1500;
+            // sunDirection: new THREE.Vector3()
+
+        
+            
+            gltf.scene.scale.set(20,20,20); 
+            // gltf.scene.rotation.y = 10
+                            ship = gltf.scene;
+                    
+                            scene.add( gltf.scene );      
+                            } );
+
+    
+
+
+
+
+
+
+//         const rocket = new FBXLoader(loadingManager);       
+//   rocket.load( './ship/APS_pirate_ship_P.fbx', function ( object ) {    
+//            object.position.y= 50;       
+//            object.position.x = -1500;
+//            object.position.z = -1500;
+//            sunDirection: new THREE.Vector3()
+
+    
+         
+//                        object.scale.set(0.2,0.2,0.2); 
+//                        object.rotation.y = 3
+//                         ship = object;
+                  
+//                          scene.add( object );      
+//                            } );
+                        
+
+    function onTransitionEnd( event ) {
+
+    done = true;
+    }
+
+
+
+    }
+
+
+function DancingPPL(){
+
+
+
+
+    const loadingManagerPerso = new THREE.LoadingManager();
+
+    loadingManagerPerso.onLoad = function(){
+
+        setTimeout( function(){
+            ok_personnageTwo = true;
+            soundFile.play()
+            soundFile.volume = 0.008000000000005728;
+        },6000)
+    }
+
+const newPerso = new FBXLoader(loadingManagerPerso);       
+newPerso.load( './SecondPerso/Ch45_nonPBR.fbx', function ( pers ) { 
+
+// Variable global
+personnageTwo = pers;
+
+// -208.2921476791033, y: 16.099811792702326, z: -43.0079364728485}
+// -233 9 -59
+
+pers.position.x = -234;
+pers.position.y = 5.2;       
+pers.position.z = -50;
+pers.traverse( function ( child ) {
+                child.receiveShadow = true;
+                child.castShadow = true;
+    }); 
+
+pers.scale.set(0.05,0.05,0.05); 
+pers.rotation.y =3
+
+scene.add( pers );
+
+                                                // --------------------------- //
+
+                                                const anim2 = new FBXLoader();
+                                                anim2.load('./SecondPerso/Old Man Idle.fbx', (animTwo) => {
+
+                                                    mixer2 = new THREE.AnimationMixer( pers );
+
+                                                const actions  = mixer2.clipAction(animTwo.animations[0]);  
+                                                animationActionsTwo.push(actions)
+                                                pers.castShadow = true; 
+
+                                                
+                                                })
+
+                                                // ------------------------- //
+
+                                                const anim3 = new FBXLoader();
+                                                anim3.load('./SecondPerso/Twist Dance.fbx', (animThree) => {
+
+                                                    const actions = mixer2.clipAction(animThree.animations[0]);
+                                                    animationActionsTwo.push(actions)
+                                                    pers.castShadow = true;
+                                                })
+
+        
+                                                });
+
+                                                console.log(animationActionsTwo)
+
+
+}
+
+
+
+ 
+
+    /* -------- ISLAND  ------------ */
+function BuildSecondIsland(){
+
+    
+   // Vector3 {x: -255.90809503121312, y: 12.000000000000021, z: -57.14274517174164}
+
+   
+   const mapMinecraft = undefined
+    const mtlLoader = new MTLLoader( )
+    mtlLoader.load("./LittleIsland/island123123123123.mtl", function (materials){
+        materials.preload();
+
+        
+        const objLoader = new OBJLoader();
+        objLoader.setMaterials(materials);
+        objLoader.load("./LittleIsland/island123123123123.obj", function(object){
+            object.position.x = -255.90809503121312
+            object.position.y =  5;
+            object.position.z = -57
+            object.scale.set(20,20,20)
+            object.traverse( function ( child ) {
+                    child.receiveShadow = true;
+                    child.castShadow = true;
+        }); 
+
+        // scenesMeshes.push(m)
+            console.log(object)
+            scene.add(object)
+        })
+    });
+
+
+}
+
+function BuildIsland(){
+
+
+    
+    const loadingManagerPerso = new THREE.LoadingManager();
+
+loadingManagerPerso.onLoad = function(){
+
+ setTimeout( function(){
+     
+ },2000)
+
+}
+
+
+//      const dracoLoader = new DRACOLoader()
+//      dracoLoader.setDecoderPath('/three.js-master/examples/js/libs/draco/')
+
+//      dracoLoader.preload()
+//      const loader = new GLTFLoader(loadingManagerPerso)
+//     loader.setDRACOLoader(dracoLoader)
+//      loader.load('./models/gltf/ileGLB-processed.glb',function (object) {
+
+//          // object.scene.position.y = 0;       
+//          object.scene.rotation.y += 10;
+//          object.scene.position.x = 0;
+//          object.scene.position.z = 0;
+//              // sunDirection: new THREE.Vector3()
+
+        
+            
+//             object.scene.scale.set(40,40,40); 
+//              // gltf.scene.rotation.y = 10
+//              object.scene.traverse( function ( child ) {
+//                     child.receiveShadow = true;
+//                     child.castShadow = true;
+//    }); 
+
+//      // scenesMeshes.push(m)
+
+//          scene.add(object.scene)
+//         })
+
+
+
+        const mapMinecraft = undefined
+    const mtlLoader = new MTLLoader( )
+    mtlLoader.load("ilePetitFormat.mtl", function (materials){
+        materials.preload();
+
+        
+        const objLoader = new OBJLoader(loadingManagerPerso);
+        objLoader.setMaterials(materials);
+        objLoader.load("ilePetitFormat.obj", function(object){
+            object.position.x = 0
+            object.position.z = 0
+            object.scale.set(1,1,1)
+            object.traverse( function ( child ) {
+                    // child.receiveShadow = true;
+                    // child.castShadow = true;
+        }); 
+
+        // scenesMeshes.push(m)
+
+            scene.add(object)
+        })
+    });
+
+    // const intersects = raycaster.intersectObjects(sceneMeshes, false)
+
+
+
+}
+
+    /* -------- WATER  ------------ */
+
+function BuildWater(){
+
+        const waterGeometry = new THREE.PlaneGeometry(500000, 500000);
+            water = new Water(
+            waterGeometry,
+        {
+            textureWidth: 10000,
+            textureHeight: 10000,
+            waterNormals: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/waternormals.jpg', function ( texture ) {
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            }),
+            alpha: 1.0,
+            sunDirection: new THREE.Vector3(),
+            Shadows: true,
+            sunColor: 0xFF6633,
+            waterColor: 0x001e0f,
+            distortionScale: 3.7,
+            wireframe: true
+        
+        }
+        );
+
+        water.receiveShadow = true;
+
+        water.rotation.x =- Math.PI / 2;
+
+        scene.add(water);
+        const waterUniforms = water.material.uniforms;
+    
+
+}
+
+
+
+    /* -------- LIGHTS ---------- */
+
+function BuildLight(x,y){
+
+var light = new THREE.DirectionalLight(0xFDE696,1.7);
+light.position.set(500000, 900, 2);
+light.target.position.set(0, 0, 0);
+// light.shadowDarkness = 20;
+light.castShadow = true;
+
+scene.add(light);
+
+
+const targetObject = new THREE.Object3D();
+targetObject.position.x = -231
+targetObject.position.y = 15
+targetObject.position.z = -64;
+scene.add(targetObject);
+
+// Vector3 {x: 562.784647793808, y: 103.3084948995811, z: 403.90982804936834}
+
+const lightForShadow = new THREE.SpotLight( 0x404040, 3.7);
+lightForShadow.position.set( 0, 150,0 ); //default; light shining from top
+lightForShadow.castShadow = true; // default false
+
+// 231 15 -64
+// lightForShadow.target.position.set(-231, 15, -64);
+lightForShadow.target = targetObject;
+
+lightForShadow.angle = Math.PI / 5;
+lightForShadow.shadow.mapSize.width = 1024; // default
+lightForShadow.shadow.mapSize.height = 1024; // default
+lightForShadow.shadow.camera.near = 100; // default
+lightForShadow.shadow.camera.far = 2000 // default
+lightForShadow.shadow.camera.fov = 15;
+lightForShadow.distance = 700;
+lightForShadow.focus = 1;
+
+scene.add( lightForShadow );
+
+const light2 = new THREE.AmbientLight( 0xFDE696, 0.05); // soft white light
+scene.add( light2 );
+
+
+// {x: -26.27670760105107, y: 29.06132975834972, z: -8.96552982710116}
+
+const light3 = new THREE.PointLight( 0xFF6633, 2, 32);
+light3.position.set( -26.27670760105107, 29.8825848795722, -9.178290448267818 );
+light3.castShadow = true;
+scene.add( light3 );
+
+
+// {x: -10.127662236102557, y: 57.25072708971032, z: -40.159644190703816}
+
+const light4 = new THREE.PointLight( 0xFF6633, 4, 32 );
+light4.position.set( -10.127662236102557, 57.25072708971032, -40.159644190703816);
+light4.castShadow = true;
+scene.add( light4 );
+
+const light5 = new THREE.AmbientLight( 0x404040, 0.1 ); // soft white light
+light5.position.set(-255.90809503121312,10,-57)
+scene.add( light5 )
+
+
+// const Helper = new THREE.CameraHelper( lightForShadow.shadow.camera );
+// scene.add(Helper)
+}
+
+
+
+        // BOX + SKY 
+   
+        sky = new Sky();
+        sky.scale.setScalar(500000);
+        scene.add(sky);
+    
+   
+        const pmremGenerator = new THREE.PMREMGenerator( renderer );
+        
+         sun = new THREE.Vector3();
+        
+
+         // Gerer le soleil
+         sun.setFromSphericalCoords( 10000000, 86.375, THREE.MathUtils.degToRad(-90) );
+        //  sky.material.uniforms[ 'mieCoefficient' ].value = 0.11
+        //  sky.material.uniforms[ 'mieDirectionalG' ].value = 0.72
+        //  sky.material.uniforms[ 'turbidity' ].value = 1.7
+        //  sky.material.uniforms[ 'rayleigh' ].value = 7
+
+         sky.material.uniforms['sunPosition'].value.copy(sun);
+         scene.environment = pmremGenerator.fromScene(sky).texture;
+
+
+         var axisHelper = new THREE.AxisHelper( 5 ); 
+         scene.add( axisHelper );
+
+
+
+function animate( time ) {
+
+const deltaTime = Math.min( 0.05, clock.getDelta() ) // STEPS_PER_FRAME;
+
+
+
+water.material.uniforms[ 'time' ].value += 1.0 / 600.0;
+    time = performance.now() * 0.000005;
+
+
+    renderer.render( scene, camera );
+
+    if(done == true){
+
+        boucle -= 0.0002;
+
+        ship.position.x = (-1500*Math.cos(boucle) )
+        ship.position.z = (-1500*Math.sin(boucle) ) 
+        // ship.position.z = (300)
+
+        ship.rotateOnAxis(new THREE.Vector3(0, 1, 0), 0.0002);
+
+
+        // ship.rotateX( Math.PI / 0.2 );
+
+            // ship.rotation.set(new THREE.Vector3(0, 0, Math.PI / 2))
+       
+        // if(ship.position.x < -2800){
+        //     ship.rotateOnAxis(new THREE.Vector3(0, 1, 0), -0.0010);
+        // }
+        
+    }
+
+
+    if(ok_personnage == true && ok_personnageTwo == true && done==true){
+
+        speed = 0.0;
+            // personnage.translateZ(0.01);
+
+        temp.setFromMatrixPosition(goal.matrixWorld)
+        camera.position.lerp(temp, 0.04)
+
+
+
+        if(action == 1){
+            animationActions[action].stop()
+        }else{
+
+            // if(action == 2){
+            // animationActions[action].stop()
+            // }
+
+            if(action == 0){
+                animationActions[2].stop()
+                animationActionsTwo[1].stop()
+            }
+
+        }
+        // --- Caméra délock ---
+
+        if(keys.c){
+        token_temp = token[0]
+        }else{
+        token_temp = token[1]
+        }
+
+
+
+        if(token_temp == 1 && done==true){
+        camera.lookAt( personnage.position )
+        }
+
+
+        action = 0;
+        action2 = 0;
+        renderer.render(scene,camera)
+        stop_walking_animation = true;
+
+
+
+        if ( keys.w ){
+
+            if(stop_walking_animation == true){
+            action = 0; 
+            speed = 0.15;
+            animationActions[action].play()
+
+            }
+
+        if( keys.f){
+
+            stop_walking_animation = false;
+
+            action = 1
+            speed = 0.30
+            
+            animationActions[action].play()
+            mixer.update(vitesse / 20)
+            
+        
+             }
+
+
+
+        }
+         else 
+
+         if ( keys.s )
+            speed = -0.15;
+
+
+
+            if( keys.b ){
+
+                if(token_for_music == 0){
+                    for(soundFile.volume = 0.008; soundFile.volume < 0.2; soundFile.volume += 0.0001){
+                         console.log(soundFile.volume)
+                     }
+                }
+
+         
+            action = 2;
+            action2 = 1;
+
+            animationActions[action].play()
+            animationActionsTwo[action2].play()
+
+            soundFile.volume = 0.2;
+            
+            mixer.update(time / 70)
+            mixer2.update(time / 70)
+
+            token_for_music=1;
+            
+            }else{
+                 // FIN DE BOUCLE pour le fondu;
+
+                 if(token_for_music == 1){
+                     token_for_music = 0;
+
+                     for(soundFile.volume = 0.2; soundFile.volume > 0.008; soundFile.volume -= 0.0001){
+                         console.log(soundFile.volume)
+                     }
+
+                 }
+
+            
+            }
+
+
+           
+
+            if( keys.space ){
+            speed = 0.20
+            personnage.translateY( vitesse );
+            personnage.translateZ( -vitesse)
+            }
+
+            if( keys.v ){
+                speed = - 0.20
+               personnage.translateY( vitesse );
+               personnage.translateZ( -vitesse)
+            } 
+
+
+
+        if ( keys.a ){
+        personnage.rotateY(0.02);
+        }
+
+        if ( keys.d ){
+        personnage.rotateY(-0.02);
+        }
+
+            animationActionsTwo[action2].play()
+            animationActions[action].play()
+            vitesse += ( speed - vitesse ) * .1;
+            personnage.translateZ( vitesse );
+
+
+
+mixer.update(vitesse / 40)
+mixer2.update(0.022)
+// console.log(valeur_camera)
+
+    }
+    
+ 
+
+}
+}
+
+
+
+
+
+let canvas = document.getElementById("canvas");
+const sceneManager = new SceneManager(canvas);
+
+
+</script>
+
+</html>

@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../Downloads/low-poly-island/source"
+		},
+		{
+			"path": "../../../Downloads/low-poly-island/textures"
+		}
+	],
+	"settings": {
+		"liveServer.settings.port": 5501,
+		"liveServer.settings.multiRootWorkspaceName": "WEBGL"
+	}
+}

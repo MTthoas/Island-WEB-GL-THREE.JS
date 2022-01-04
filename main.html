@@ -414,6 +414,9 @@ function BuildPersonnage(){
 function Boat(){
 
         const loadingManager = new THREE.LoadingManager( () => {
+
+            soundFile.play()
+            soundFile.volume = 0.008000000000005728;
 	
     onTransitionEnd();
     
@@ -489,8 +492,7 @@ function DancingPPL(){
 
         setTimeout( function(){
             ok_personnageTwo = true;
-            soundFile.play()
-            soundFile.volume = 0.008000000000005728;
+
         },6000)
     }
 
@@ -595,6 +597,7 @@ function BuildIsland(){
 loadingManagerPerso.onLoad = function(){
 
  setTimeout( function(){
+
      
  },2000)
 
@@ -668,8 +671,8 @@ function BuildWater(){
             water = new Water(
             waterGeometry,
         {
-            textureWidth: 10000,
-            textureHeight: 10000,
+            textureWidth: 1000,
+            textureHeight: 1000,
             waterNormals: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/waternormals.jpg', function ( texture ) {
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
             }),
@@ -701,7 +704,7 @@ function BuildWater(){
 function BuildLight(x,y){
 
 var light = new THREE.DirectionalLight(0xFDE696,1.7);
-light.position.set(500000, 900, 2);
+light.position.set(50000, 900, 2);
 light.target.position.set(0, 0, 0);
 // light.shadowDarkness = 20;
 light.castShadow = true;
@@ -769,7 +772,7 @@ scene.add( light5 )
         // BOX + SKY 
    
         sky = new Sky();
-        sky.scale.setScalar(500000);
+        sky.scale.setScalar(5000);
         scene.add(sky);
     
    

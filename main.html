@@ -78,7 +78,7 @@ import { MeshoptDecoder } from 'https://threejs.org/examples/jsm/libs/meshopt_de
 
 /* DECLARATION DE VARIABLES */
 
-let camera, scene, renderer,goal;
+let camera, scene, renderer,distanteCam;
 let geometry, material, mesh;
 let sun;
 
@@ -92,10 +92,14 @@ let boucle = 0;
 let controls;
 var keys;
 let mixer2;
-let mixer3;
 let stop_walking_animation;
 
-let done = false;
+
+// TOKEN UTILE POUR LE CHARGEMENT
+
+let done_for_boat = false;
+let done_personnage = false;
+let done_personnageTwo = false;
 
 
 var temp = new THREE.Vector3;
@@ -108,8 +112,6 @@ var speed = 0.0;
 
 var personnage;
 var personnageTwo;
-let ok_personnage = false;
-let ok_personnageTwo = false;
 let change_position_to_run = false;
 let perso_pose;
 let action;
@@ -167,12 +169,16 @@ var soundFile = new Audio('jack-sparrow-tribute.mp3')
 
 function SceneManager(canvas) {
 
+    /* --------------------------- */
+    /*        AFFICHAGE FPS        */
+    /* --------------------------- */
+
     (function(){
         var script=document.createElement('script');
         script.onload=function(){
-            var stats=new Stats();
+            var stats=new Stats();                      // Stats import from three.JS
             document.body.appendChild(stats.dom);
-            requestAnimationFrame(function loop(){
+            requestAnimationFrame(function loop(){      // LOOP DU NOMBRE DE FPS
                 stats.update();
                 requestAnimationFrame(loop)
             });
@@ -182,10 +188,11 @@ function SceneManager(canvas) {
         document.head.appendChild(script);
     })()
 
-    /* --- Appels de fonctions  */
+    /* -------------------------------------------------------------------------------- */
+    /* Construction des fonctions, utile pour établir un ordre de chargement des objets */
+    /* -------------------------------------------------------------------------------- */
 
     const ren = RB();
-    const B = Boat();
     const perso = BuildPersonnage();
     const cam = BuildStart();
     const flote = BuildWater();
@@ -193,6 +200,7 @@ function SceneManager(canvas) {
     const second = BuildSecondIsland();
     const buildIle = BuildIsland();
     const secondDance = DancingPPL();
+    const B = Boat();
 
 
     /* --------------------------- */
@@ -210,15 +218,19 @@ function SceneManager(canvas) {
 
 
         const blocker = document.getElementById( 'blocker' );
-				const instructions = document.getElementById( 'instructions' );
+				const instructions = document.getElementById( 'instructions' );                                 
 
-				instructions.addEventListener( 'click', function () {
+				instructions.addEventListener( 'click', function () {         
+                    
+                    // Capture d'événement + LOCK Camera
 
 					controls.lock();
 
 				} );
 
 				controls.addEventListener( 'lock', function () {
+
+                    // Si l'événement lock est déclenché on retire CLICK FOR PLAY
 
 					instructions.style.display = 'none';
 					blocker.style.display = 'none';
@@ -227,15 +239,14 @@ function SceneManager(canvas) {
 
 				controls.addEventListener( 'unlock', function () {
 
+                    // Sinon on continue à l'afficher
+
 					blocker.style.display = 'block';
 					instructions.style.display = '';
 
 				} );
 
-				scene.add( controls.getObject() );
-
-
-        valeur_camera = camera.position;
+				scene.add( controls.getObject() );      // getObject() renvoi les paramètres de la page
 
         return camera;
     }
@@ -247,9 +258,12 @@ function SceneManager(canvas) {
     function RB(){
 
 	    renderer = new THREE.WebGLRenderer({ antialias: true } );
-	    renderer.setSize( window.innerWidth, window.innerHeight );
-	    renderer.setAnimationLoop( animate );
-	    canvas.appendChild(renderer.domElement );
+	    renderer.setSize( window.innerWidth, window.innerHeight );          // Selectionne tout l'écan
+	    renderer.setAnimationLoop( animate );                               // Créer une boucle infini sur la fonction animate
+	    canvas.appendChild(renderer.domElement );                           // Canvas et le fils du Dom.Renderer
+
+        // 2 Must Haves for Shadows
+
         renderer.shadowMapEnabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         
@@ -260,11 +274,6 @@ function SceneManager(canvas) {
     /* --------------------------- */
     /*      CENTRE DE CONTROLE     */
     /* --------------------------- */
-
-    // raycaster.setFromCamera(mouse, camera)
-
-    // const intersects = raycaster.intersectObjects(sceneMeshes, false)
-
 
     keys = {
         a:false,
@@ -280,78 +289,84 @@ function SceneManager(canvas) {
 
     document.body.addEventListener('keydown',function(e){
 
-        var key = e.code.replace('Key', '').toLowerCase();
-                                                                     if ( keys[ key ] !== undefined )
-                                                                         keys[ key ] = true;
+        var key = e.code.replace('Key', '').toLowerCase();      // Remplace touche en minuscule pour donner [keys[a]]
+        if ( keys[ key ] !== undefined )
+        keys[ key ] = true;                                     // Si une touche est "capté", renvoi true, utile pour la function animation
     });
 
 
   document.body.addEventListener( 'keyup', function(e) {
     
     var key = e.code.replace('Key', '').toLowerCase();
-                                                                    if ( keys[ key ] !== undefined )
-                                                                        keys[ key ] = false;
-  
+        if ( keys[ key ] !== undefined )
+        keys[ key ] = false;                                    // Si une touche est "capté", renvoi false, utile pour la function animation
+    
   });
 
 
-  // --- Evénements ----
+  // --- Evénements pour le mouvement de la souris + molette ----
 
   document.addEventListener( 'mousemove', onMouseMove, false );
   document.addEventListener( 'wheel', onMouseWheel, false );
 
-    // Evénement mouvement souris
+        // Evénement mouvement souris
 
-    function onMouseMove( event ) {
-        
-    mouse.x = ( event.clientX - windowHalf.x );
-    mouse.y = ( event.clientY - windowHalf.x );
+        function onMouseMove( event ) {
+            
+        mouse.x = ( event.clientX - windowHalf.x );
+        mouse.y = ( event.clientY - windowHalf.x );
 
-    }
+        }
 
-    // Evénement molette souris
+        // Evénement molette souris
 
-    function onMouseWheel( event ) {
+        function onMouseWheel( event ) {
 
-    camera.position.z += event.deltaY * 0.01; 
+        camera.position.z += event.deltaY * 0.01; 
 
-    }
-
-    /* --------------------------- */
-    /*                             */
-    /*      DIFFERENTS BUILDS      */
-    /*                             */
-    /* --------------------------- */
+        }
 
 
-    /* -------- PERSONNAGE ------------ */
+        /* ------------------------------------------------------------------------------- */
+        /*                                                                                 */
+        /*                              DIFFERENTS BUILDS                                  */
+        /*                                                                                 */
+        /* ------------------------------------------------------------------------------- */
+
+
+        /* --------------------------- */
+        /*         PERSONNAGE          */
+        /* --------------------------- */
 
 function BuildPersonnage(){
 
-// {x: 30.97594051346526, y: 8.594013423677485, z: 30.158022437049556}
-
+    // For loading traitement, OnLoad / OnProgress / OnError
     const loadingManagerPerso = new THREE.LoadingManager();
 
+    // Si le chargement est bon, on signifie que le personnage a chargé avec un délai de 2 secondes pour laisser le temps au personnage de s'appliquer
+    
     loadingManagerPerso.onLoad = function(){
 
         setTimeout( function(){
-            ok_personnage = true;
+            done_personnage = true;
         },2000)
     
     }
 
+    // FBX Loader 
+
     const newPerso = new FBXLoader(loadingManagerPerso);       
     newPerso.load( 'PM.fbx', function ( pers ) { 
     
-    // Variable global
+    // Variable global pour renvoyer son entité.
+
    personnage = pers;
-
-   // Vector3 {x: -255.90809503121312, y: 12.000000000000021, z: -57.14274517174164}
-
 
    pers.position.x = -255;
    pers.position.y = 7;       
    pers.position.z = -57;
+
+   // Gestion de l'ombre, Receive shadow & Cast Shadow ( Pour appliquer l'ombre derrière lui )
    pers.traverse( function ( child ) {
                     child.receiveShadow = true;
                     child.castShadow = true;
@@ -359,24 +374,29 @@ function BuildPersonnage(){
  
     pers.scale.set(0.05,0.05,0.05); 
     pers.rotation.y = 5
-    // Goal = Caméra
-    goal = new THREE.Object3D;
-    pers.add(goal)
-    goal.position.set(0,200,-600)
-    pers.castShadow = true;
-    1
+
+
+    // distanteCam = Caméra qui suit le personnage
+
+    distanteCam = new THREE.Object3D;
+    pers.add(distanteCam)
+    distanteCam.position.set(0,200,-600)
+
 
     scene.add( pers );
 
                                                 const anim = new FBXLoader();
                                                 anim.load('walk.fbx', (anim) => {
 
+                                                    // AnimationMixer permet de jouer de jouer des animations pour un objet ciblé, ici "pers"
 
                                                     mixer = new THREE.AnimationMixer( pers );
 
+                                                        // ClipAction est un ensemble d'attributs et de sous fonctions utile à l'animation 3D de l'objet, puis qu'on range dans un tableau.
+
                                                     const actions = mixer.clipAction(anim.animations[0] );
                                                     animationActions.push(actions)
-                                                    pers.castShadow = true;
+                                                    
                                                 })
 
                                                 // --------------------------- //
@@ -386,7 +406,7 @@ function BuildPersonnage(){
 
                                                 const actions  = mixer.clipAction(anim2.animations[0]);  
                                                 animationActions.push(actions)
-                                                pers.castShadow = true; 
+                                          
 
                                                 
                                                 })
@@ -398,34 +418,34 @@ function BuildPersonnage(){
 
                                                     const actions = mixer.clipAction(anim3.animations[0]);
                                                     animationActions.push(actions)
-                                                    pers.castShadow = true;
+                                           
                                                 })
 
             
         
                                                 });
-
-                                                console.log(animationActions)
+                                  
 }
 
 
-    /* -------- BATEAU ------------ */
+        /* --------------------------- */
+        /*           BATEAU            */
+        /* --------------------------- */
 
 function Boat(){
 
+    // DONE FOR BOAT, utile pour la fonction d'animation
+
         const loadingManager = new THREE.LoadingManager( () => {
-
-            soundFile.play()
-            soundFile.volume = 0.008000000000005728;
 	
-    onTransitionEnd();
+            done_for_boat = true;
     
-} );
+        } );
 
 
 
-    const dracoLoader = new DRACOLoader()
-    dracoLoader.setDecoderPath('/three.js-master/examples/js/libs/draco/')
+    const dracoLoader = new DRACOLoader()                                           // Fonction permettant de chargé des fichiers compressé par ces soins
+    dracoLoader.setDecoderPath('/three.js-master/examples/js/libs/draco/')          // On décode la librarie de Draco, on fait appel au fichiers de draco
 
     dracoLoader.preload()
 
@@ -436,50 +456,18 @@ function Boat(){
         gltf.scene.position.y= 50;       
         gltf.scene.position.x = -1500;
         gltf.scene.position.z = -1500;
-            // sunDirection: new THREE.Vector3()
-
-        
-            
-            gltf.scene.scale.set(20,20,20); 
-            // gltf.scene.rotation.y = 10
-                            ship = gltf.scene;
-                    
-                            scene.add( gltf.scene );      
+        gltf.scene.scale.set(20,20,20); 
+         
+         ship = gltf.scene;         
+         scene.add( gltf.scene );      
                             } );
 
     
+}
 
-
-
-
-
-
-//         const rocket = new FBXLoader(loadingManager);       
-//   rocket.load( './ship/APS_pirate_ship_P.fbx', function ( object ) {    
-//            object.position.y= 50;       
-//            object.position.x = -1500;
-//            object.position.z = -1500;
-//            sunDirection: new THREE.Vector3()
-
-    
-         
-//                        object.scale.set(0.2,0.2,0.2); 
-//                        object.rotation.y = 3
-//                         ship = object;
-                  
-//                          scene.add( object );      
-//                            } );
-                        
-
-    function onTransitionEnd( event ) {
-
-    done = true;
-    }
-
-
-
-    }
-
+        /* --------------------------- */
+        /*     SECOND PERSONNAGE       */
+        /* --------------------------- */
 
 function DancingPPL(){
 
@@ -491,19 +479,14 @@ function DancingPPL(){
     loadingManagerPerso.onLoad = function(){
 
         setTimeout( function(){
-            ok_personnageTwo = true;
-
+            done_personnageTwo = true;
         },6000)
     }
 
 const newPerso = new FBXLoader(loadingManagerPerso);       
 newPerso.load( './SecondPerso/Ch45_nonPBR.fbx', function ( pers ) { 
 
-// Variable global
 personnageTwo = pers;
-
-// -208.2921476791033, y: 16.099811792702326, z: -43.0079364728485}
-// -233 9 -59
 
 pers.position.x = -234;
 pers.position.y = 5.2;       
@@ -545,28 +528,23 @@ scene.add( pers );
         
                                                 });
 
-                                                console.log(animationActionsTwo)
-
-
 }
 
 
+        /* --------------------------- */
+        /*   SECOND ET PETITE ISLAND   */
+        /* --------------------------- */
 
- 
-
-    /* -------- ISLAND  ------------ */
 function BuildSecondIsland(){
 
-    
-   // Vector3 {x: -255.90809503121312, y: 12.000000000000021, z: -57.14274517174164}
+    // Texture de l'objet
 
-   
-   const mapMinecraft = undefined
     const mtlLoader = new MTLLoader( )
     mtlLoader.load("./LittleIsland/island123123123123.mtl", function (materials){
         materials.preload();
 
-        
+        // Architecture de l'objet
+
         const objLoader = new OBJLoader();
         objLoader.setMaterials(materials);
         objLoader.load("./LittleIsland/island123123123123.obj", function(object){
@@ -574,13 +552,11 @@ function BuildSecondIsland(){
             object.position.y =  5;
             object.position.z = -57
             object.scale.set(20,20,20)
+
             object.traverse( function ( child ) {
                     child.receiveShadow = true;
                     child.castShadow = true;
         }); 
-
-        // scenesMeshes.push(m)
-            console.log(object)
             scene.add(object)
         })
     });
@@ -588,52 +564,25 @@ function BuildSecondIsland(){
 
 }
 
+        /* --------------------------- */
+        /*        FIRST ISLAND         */
+        /* --------------------------- */
+
 function BuildIsland(){
 
-
-    
     const loadingManagerPerso = new THREE.LoadingManager();
 
 loadingManagerPerso.onLoad = function(){
 
  setTimeout( function(){
-
      
- },2000)
+            // Easter-EGG
+            soundFile.play()
+            soundFile.volume = 0.008000000000005728;
+
+ },5000)
 
 }
-
-
-//      const dracoLoader = new DRACOLoader()
-//      dracoLoader.setDecoderPath('/three.js-master/examples/js/libs/draco/')
-
-//      dracoLoader.preload()
-//      const loader = new GLTFLoader(loadingManagerPerso)
-//     loader.setDRACOLoader(dracoLoader)
-//      loader.load('./models/gltf/ileGLB-processed.glb',function (object) {
-
-//          // object.scene.position.y = 0;       
-//          object.scene.rotation.y += 10;
-//          object.scene.position.x = 0;
-//          object.scene.position.z = 0;
-//              // sunDirection: new THREE.Vector3()
-
-        
-            
-//             object.scene.scale.set(40,40,40); 
-//              // gltf.scene.rotation.y = 10
-//              object.scene.traverse( function ( child ) {
-//                     child.receiveShadow = true;
-//                     child.castShadow = true;
-//    }); 
-
-//      // scenesMeshes.push(m)
-
-//          scene.add(object.scene)
-//         })
-
-
-
         const mapMinecraft = undefined
     const mtlLoader = new MTLLoader( )
     mtlLoader.load("ilePetitFormat.mtl", function (materials){
@@ -646,10 +595,6 @@ loadingManagerPerso.onLoad = function(){
             object.position.x = 0
             object.position.z = 0
             object.scale.set(1,1,1)
-            object.traverse( function ( child ) {
-                    // child.receiveShadow = true;
-                    // child.castShadow = true;
-        }); 
 
         // scenesMeshes.push(m)
 
@@ -663,54 +608,62 @@ loadingManagerPerso.onLoad = function(){
 
 }
 
-    /* -------- WATER  ------------ */
+        /* --------------------------- */
+        /*           OCEAN             */
+        /* --------------------------- */
 
 function BuildWater(){
 
-        const waterGeometry = new THREE.PlaneGeometry(500000, 500000);
+        const waterGeometry = new THREE.PlaneGeometry(5000, 5000);
+
+        // Fonction de Three.JS
+
             water = new Water(
+
+            // La surface de l'eau et ces paramètres
             waterGeometry,
         {
-            textureWidth: 1000,
-            textureHeight: 1000,
+            textureWidth: 10000,
+            textureHeight: 10000,
             waterNormals: new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/waternormals.jpg', function ( texture ) {
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;                                                   
+                                                                                            // texture.wrapS : Défini la couverture de la texture horizontalement
+                                                                                            // texture.wrapT : Défini la couverture de la texture verticalement
+                                                                                            // RepeatWrapping : Textures vont être répétés à l'infini
+
+                                                                                            // == Prototype des futurs vagues, utile pour distortionScale
             }),
-            alpha: 1.0,
-            sunDirection: new THREE.Vector3(),
+
+            
             Shadows: true,
-            sunColor: 0xFF6633,
             waterColor: 0x001e0f,
-            distortionScale: 3.7,
-            wireframe: true
+            distortionScale: 3.7,       // Distortion de l'eau
         
         }
         );
 
         water.receiveShadow = true;
-
         water.rotation.x =- Math.PI / 2;
-
         scene.add(water);
-        const waterUniforms = water.material.uniforms;
     
 
 }
 
-
-
-    /* -------- LIGHTS ---------- */
+        /* --------------------------- */
+        /*           LIGHTS            */
+        /* --------------------------- */
 
 function BuildLight(x,y){
 
-var light = new THREE.DirectionalLight(0xFDE696,1.7);
-light.position.set(50000, 900, 2);
-light.target.position.set(0, 0, 0);
-// light.shadowDarkness = 20;
-light.castShadow = true;
+    // SOLEIL AU LOIN
 
+var light = new THREE.DirectionalLight(0xFDE696,1.7);
+light.position.set(5000, 1200, 2);
+light.target.position.set(0, 0, 0);
+light.castShadow = true;
 scene.add(light);
 
+    // Création d'un objet 3d qui va être ciblé par lightForShadow, placé sur la seconde petit ile
 
 const targetObject = new THREE.Object3D();
 targetObject.position.x = -231
@@ -718,14 +671,10 @@ targetObject.position.y = 15
 targetObject.position.z = -64;
 scene.add(targetObject);
 
-// Vector3 {x: 562.784647793808, y: 103.3084948995811, z: 403.90982804936834}
 
 const lightForShadow = new THREE.SpotLight( 0x404040, 3.7);
-lightForShadow.position.set( 0, 150,0 ); //default; light shining from top
-lightForShadow.castShadow = true; // default false
-
-// 231 15 -64
-// lightForShadow.target.position.set(-231, 15, -64);
+lightForShadow.position.set( 0, 150,0 ); 
+lightForShadow.castShadow = true; 
 lightForShadow.target = targetObject;
 
 lightForShadow.angle = Math.PI / 5;
@@ -743,20 +692,17 @@ const light2 = new THREE.AmbientLight( 0xFDE696, 0.05); // soft white light
 scene.add( light2 );
 
 
-// {x: -26.27670760105107, y: 29.06132975834972, z: -8.96552982710116}
-
 const light3 = new THREE.PointLight( 0xFF6633, 2, 32);
 light3.position.set( -26.27670760105107, 29.8825848795722, -9.178290448267818 );
 light3.castShadow = true;
 scene.add( light3 );
 
 
-// {x: -10.127662236102557, y: 57.25072708971032, z: -40.159644190703816}
-
 const light4 = new THREE.PointLight( 0xFF6633, 4, 32 );
 light4.position.set( -10.127662236102557, 57.25072708971032, -40.159644190703816);
 light4.castShadow = true;
 scene.add( light4 );
+
 
 const light5 = new THREE.AmbientLight( 0x404040, 0.1 ); // soft white light
 light5.position.set(-255.90809503121312,10,-57)
@@ -775,79 +721,70 @@ scene.add( light5 )
         sky.scale.setScalar(5000);
         scene.add(sky);
     
+
+         sun = new THREE.Vector3();    
+         sun.setFromSphericalCoords( 10000000, 86.375, THREE.MathUtils.degToRad(-90) );
+         
+        // CubeMap environment texture, accès sur l'ajout des texture
    
         const pmremGenerator = new THREE.PMREMGenerator( renderer );
-        
-         sun = new THREE.Vector3();
-        
 
-         // Gerer le soleil
-         sun.setFromSphericalCoords( 10000000, 86.375, THREE.MathUtils.degToRad(-90) );
-        //  sky.material.uniforms[ 'mieCoefficient' ].value = 0.11
-        //  sky.material.uniforms[ 'mieDirectionalG' ].value = 0.72
-        //  sky.material.uniforms[ 'turbidity' ].value = 1.7
-        //  sky.material.uniforms[ 'rayleigh' ].value = 7
+        // Copie de la position du soleil pour l'appliquer sur la skyBox
 
          sky.material.uniforms['sunPosition'].value.copy(sun);
          scene.environment = pmremGenerator.fromScene(sky).texture;
 
 
-         var axisHelper = new THREE.AxisHelper( 5 ); 
-         scene.add( axisHelper );
-
-
 
 function animate( time ) {
 
-const deltaTime = Math.min( 0.05, clock.getDelta() ) // STEPS_PER_FRAME;
+    // Vitesse de la fusion de l'eau ( mouvement )
+    water.material.uniforms[ 'time' ].value += 1.0 / 600.0;
 
-
-
-water.material.uniforms[ 'time' ].value += 1.0 / 600.0;
+    // Valeur qui s'incrémente en fonction du temps
     time = performance.now() * 0.000005;
 
-
+    // Réactualisation de la scène en continu
     renderer.render( scene, camera );
 
-    if(done == true){
+    /* ---------------------------------- */
+    /*      SI LE BATEAU EST CHARGE       */
+    /* ---------------------------------- */
+
+    if(done_for_boat == true){
 
         boucle -= 0.0002;
 
+         // Faire tourné le bateau 1500 unités autour du point 0.
+
         ship.position.x = (-1500*Math.cos(boucle) )
         ship.position.z = (-1500*Math.sin(boucle) ) 
-        // ship.position.z = (300)
 
+        // Pour faire tourner le bateau sur lui même
         ship.rotateOnAxis(new THREE.Vector3(0, 1, 0), 0.0002);
-
-
-        // ship.rotateX( Math.PI / 0.2 );
-
-            // ship.rotation.set(new THREE.Vector3(0, 0, Math.PI / 2))
-       
-        // if(ship.position.x < -2800){
-        //     ship.rotateOnAxis(new THREE.Vector3(0, 1, 0), -0.0010);
-        // }
         
     }
 
+    /* --------------------------------------------------------- */
+    /*      SI LE BATEAU, LES DEUX PERSONNAGES SONT CHARGES      */
+    /* --------------------------------------------------------- */
 
-    if(ok_personnage == true && ok_personnageTwo == true && done==true){
+
+    if(done_personnage == true && done_personnageTwo == true && done_for_boat==true){
 
         speed = 0.0;
-            // personnage.translateZ(0.01);
 
-        temp.setFromMatrixPosition(goal.matrixWorld)
-        camera.position.lerp(temp, 0.04)
+        // Calcul de vecteurs pour que la caméra se situe derrière le personnage quoi qu'il arrive, variable en axe Y,Z,X // https://en.wikipedia.org/wiki/Transformation_matrix
+        temp.setFromMatrixPosition(distanteCam.matrixWorld)
+        // Distance de la caméra face à l'objet, il manque maintenant le camera.lookAt()
+        camera.position.lerp(temp, 0.4)
 
 
-
-        if(action == 1){
-            animationActions[action].stop()
+                                                                                                                        // ACTION 0 = MARCHE
+        if(action == 1){                                                                                                // ACTION 1 = RUNNING
+            animationActions[action].stop()                                                                             // ACTION 2 = DANSE
+                                                                                                                        
         }else{
-
-            // if(action == 2){
-            // animationActions[action].stop()
-            // }
 
             if(action == 0){
                 animationActions[2].stop()
@@ -855,6 +792,7 @@ water.material.uniforms[ 'time' ].value += 1.0 / 600.0;
             }
 
         }
+
         // --- Caméra délock ---
 
         if(keys.c){
@@ -864,8 +802,12 @@ water.material.uniforms[ 'time' ].value += 1.0 / 600.0;
         }
 
 
+    /* -------------------------------------------------------------- */
+    /*    SI ON APPUIE PAS SUR C, LA CAMERA REVIENT SUR L'INDIVIDU    */
+    /* -------------------------------------------------------------- */
+        
 
-        if(token_temp == 1 && done==true){
+        if(token_temp == 1){
         camera.lookAt( personnage.position )
         }
 
@@ -876,41 +818,40 @@ water.material.uniforms[ 'time' ].value += 1.0 / 600.0;
         stop_walking_animation = true;
 
 
-
+        
+    /* ------------------------- */
+    /*   PANNEAU DES TOUCHES     */
+    /* ------------------------- */
+        
+            // SI WALK EN AVANT
         if ( keys.w ){
 
             if(stop_walking_animation == true){
             action = 0; 
             speed = 0.15;
             animationActions[action].play()
-
             }
 
+            // SI TOUCHE POUR COURIR
         if( keys.f){
 
             stop_walking_animation = false;
-
             action = 1
             speed = 0.30
-            
-            animationActions[action].play()
-            mixer.update(vitesse / 20)
-            
         
              }
-
-
-
         }
          else 
 
+            // SI TOUCHE POUR RECULER
          if ( keys.s )
             speed = -0.15;
 
 
-
+            // SI EASTER EGG
             if( keys.b ){
 
+                // Dégradé de music
                 if(token_for_music == 0){
                     for(soundFile.volume = 0.008; soundFile.volume < 0.2; soundFile.volume += 0.0001){
                          console.log(soundFile.volume)
@@ -925,13 +866,16 @@ water.material.uniforms[ 'time' ].value += 1.0 / 600.0;
             animationActionsTwo[action2].play()
 
             soundFile.volume = 0.2;
+
+            // REFAIRE UN MIXER POUR CHANGER LA VITESSE 
             
-            mixer.update(time / 70)
-            mixer2.update(time / 70)
+            mixer.update(0.05)
+            mixer2.update(0.05)
 
             token_for_music=1;
             
             }else{
+
                  // FIN DE BOUCLE pour le fondu;
 
                  if(token_for_music == 1){
@@ -947,7 +891,7 @@ water.material.uniforms[ 'time' ].value += 1.0 / 600.0;
             }
 
 
-           
+           // Pour
 
             if( keys.space ){
             speed = 0.20
@@ -978,20 +922,12 @@ water.material.uniforms[ 'time' ].value += 1.0 / 600.0;
 
 
 
-mixer.update(vitesse / 40)
+mixer.update(vitesse / 20)
 mixer2.update(0.022)
-// console.log(valeur_camera)
 
+        }
     }
-    
- 
-
 }
-}
-
-
-
-
 
 let canvas = document.getElementById("canvas");
 const sceneManager = new SceneManager(canvas);

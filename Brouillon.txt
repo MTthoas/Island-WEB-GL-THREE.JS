@@ -1,0 +1,27 @@
+//      const dracoLoader = new DRACOLoader()
+//      dracoLoader.setDecoderPath('/three.js-master/examples/js/libs/draco/')
+
+//      dracoLoader.preload()
+//      const loader = new GLTFLoader(loadingManagerPerso)
+//     loader.setDRACOLoader(dracoLoader)
+//      loader.load('./models/gltf/ileGLB-processed.glb',function (object) {
+
+//          // object.scene.position.y = 0;       
+//          object.scene.rotation.y += 10;
+//          object.scene.position.x = 0;
+//          object.scene.position.z = 0;
+//              // sunDirection: new THREE.Vector3()
+
+        
+            
+//             object.scene.scale.set(40,40,40); 
+//              // gltf.scene.rotation.y = 10
+//              object.scene.traverse( function ( child ) {
+//                     child.receiveShadow = true;
+//                     child.castShadow = true;
+//    }); 
+
+//      // scenesMeshes.push(m)
+
+//          scene.add(object.scene)
+//         })

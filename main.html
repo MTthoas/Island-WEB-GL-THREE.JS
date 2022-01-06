@@ -673,7 +673,7 @@ scene.add(targetObject);
 
 
 const lightForShadow = new THREE.SpotLight( 0x404040, 3.7);
-lightForShadow.position.set( 0, 150,0 ); 
+lightForShadow.position.set( 0, 170,20 ); 
 lightForShadow.castShadow = true; 
 lightForShadow.target = targetObject;
 
@@ -688,7 +688,7 @@ lightForShadow.focus = 1;
 
 scene.add( lightForShadow );
 
-const light2 = new THREE.AmbientLight( 0xFDE696, 0.05); // soft white light
+const light2 = new THREE.AmbientLight( 0xFDE696, 0.003); // soft white light
 scene.add( light2 );
 
 
@@ -704,7 +704,7 @@ light4.castShadow = true;
 scene.add( light4 );
 
 
-const light5 = new THREE.AmbientLight( 0x404040, 0.1 ); // soft white light
+const light5 = new THREE.AmbientLight( 0x404040, 0.007 ); // soft white light
 light5.position.set(-255.90809503121312,10,-57)
 scene.add( light5 )
 
@@ -922,7 +922,7 @@ function animate( time ) {
 
 
 
-mixer.update(vitesse / 20)
+mixer.update(vitesse / 30)
 mixer2.update(0.022)
 
         }
